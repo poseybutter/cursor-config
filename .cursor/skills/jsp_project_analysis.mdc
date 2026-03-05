@@ -1,0 +1,129 @@
+---
+description: Cursor가 JSP 기반 Spring 프로젝트 구조를 이해하고 퍼블리셔 관점에서 설명하도록 합니다
+globs: ["**/*.jsp", "**/*.java", "**/*.xml", "**/*.html"]
+alwaysApply: false
+---
+
+# JSP 프로젝트 구조 분석 스킬
+
+이 스킬은 JSP 기반 Spring 프로젝트를 분석할 때 활성화됩니다.
+AI는 퍼블리셔가 이해하기 쉬운 방식으로 구조를 설명합니다.
+
+## JSP 프로젝트 레이어 구조
+
+```
+브라우저 요청 (URL 입력 / 버튼 클릭)
+      ↓
+  Controller  ← 고객 창구 (요청을 받아 담당자에게 넘김)
+      ↓
+   Service    ← 실무 담당자 (실제 업무를 처리함)
+      ↓
+ Repository   ← 자료 보관함 (DB와 직접 소통)
+      ↓
+  Database    ← 실제 데이터가 저장된 곳
+      ↓
+   JSP 렌더링  ← 퍼블리셔가 작업한 화면에 데이터를 채워 보여줌
+```
+
+## 퍼블리셔 관점 비유
+
+| Spring 개념 | 퍼블리셔 비유 | 역할 설명 |
+|---|---|---|
+| `Controller` | 고객 창구 담당자 | URL 요청을 받아 적절한 Service로 넘김 |
+| `Service` | 실무 담당자 | 실제 비즈니스 로직 처리 |
+| `Repository` | 자료실 담당자 | DB에서 데이터를 꺼내오거나 저장 |
+| `DTO` | 작업 지시서 | 데이터를 전달하는 양식 |
+| `JSP` | 퍼블리셔 작업물 | 데이터를 화면에 표시하는 템플릿 |
+| `JSTL` | JSP용 도구 | JSP 안에서 반복문/조건문 처리 |
+| `EL (${})` | 데이터 출력 태그 | Controller가 넘긴 데이터를 JSP에서 출력 |
+
+## AI 행동 규칙
+
+### JSP 파일 분석 시
+1. View 레이어(화면)에만 영향을 줌을 먼저 설명합니다.
+2. JSTL / EL 태그가 있으면 어떤 데이터를 출력하는지 설명합니다.
+3. `form` action / `input` name 변경 시 → Controller 파라미터 매핑 확인 필요함을 안내합니다.
+4. 공통 레이아웃 파악: 상단 `<%@ include %>`나 `tiles`, `sitemesh` 구조를 확인하여, 공통 모듈 수정 시 사이트 전체에 미치는 영향력을 경고함.
+5. 스크립트 충돌 확인: 공통 레이아웃에 선언된 라이브러리와 개별 페이지 스크립트 간의 중복 로드나 충돌 가능성을 체크함.
+
+### 마크업 수정 영향 범위 안내
+
+```
+HTML 태그/클래스 변경  → View만 영향 (안전)
+form action 변경      → Controller URL 확인 필요
+input name 변경       → Controller @RequestParam 확인 필요
+JSTL ${변수명} 변경   → Controller Model 변수명 확인 필요
+JavaScript AJAX URL  → Controller RequestMapping URL 확인 필요
+```
+
+### 공공기관 프로젝트 주의사항
+- 기존 코드 구조를 임의로 변경하지 않습니다.
+- 변경이 필요하면 반드시 영향 범위를 먼저 설명합니다.
+- 레거시 jQuery 코드를 존중합니다.
+
+## JSTL 구조 이해
+
+```jsp
+<%-- 반복문 예시 --%>
+<c:forEach var="item" items="${noticeList}">
+  <li class="notice__item">
+    <a href="/notice/${item.id}">${item.title}</a>
+    <span>${item.regDate}</span>
+  </li>
+</c:forEach>
+
+<%-- 조건문 예시 --%>
+<c:if test="${not empty item.newYn}">
+  <span class="badge badge--new">NEW</span>
+</c:if>
+
+<%-- 선택 구조 예시 --%>
+<c:choose>
+  <c:when test="${item.type eq 'notice'}">
+    <span class="badge badge--notice">공지</span>
+  </c:when>
+  <c:otherwise>
+    <span class="badge">일반</span>
+  </c:otherwise>
+</c:choose>
+```
+
+## include 방식 차이 (퍼블리셔 주의 포인트)
+
+JSP에는 두 가지 include 방식이 있으며 동작이 다릅니다.
+
+| 방식 | 문법 | 처리 시점 | 특징 |
+|---|---|---|---|
+| 정적 include | `<%@ include file="header.jsp" %>` | 컴파일 시 | 파일 내용을 그대로 합침, 변수 공유 가능 |
+| 동적 include | `<jsp:include page="header.jsp" />` | 실행 시 | 별도 요청처럼 처리, 독립적 실행 |
+
+> 퍼블리셔 관점: 공통 header/footer는 보통 `<%@ include %>`로 포함됨.
+> 이 파일을 수정하면 해당 JSP를 include하는 **모든 페이지**에 영향이 갑니다. 주의!
+
+## 인코딩 및 taglib 선언 확인
+
+JSP 파일 최상단에 반드시 확인해야 할 선언들:
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+```
+
+- `charset=UTF-8` 누락 → 한글 깨짐
+- `<%@ taglib %>` 누락 → `<c:forEach>` 등이 태그 그대로 화면에 출력됨
+- `${변수명}`이 화면에 그대로 보이면 → taglib 선언 누락 또는 EL 비활성화 상태
+
+## 파일 구조 분석 방법
+
+JSP 프로젝트 파일이 열리면 다음 순서로 분석합니다.
+
+1. **프로젝트 루트 파악** — `WEB-INF/`, `src/`, `webapp/` 구조 확인
+2. **JSP 위치 파악** — `WEB-INF/views/` 또는 `webapp/WEB-INF/jsp/` 확인
+3. **공통 레이아웃 파악** — include 파일 구조 확인 (`header.jsp`, `footer.jsp`), include 방식 확인
+4. **인코딩·taglib 선언 확인** — 파일 최상단 선언 점검
+5. **데이터 흐름 파악** — EL / JSTL 태그를 보고 어떤 데이터가 오는지 파악
+6. **마크업 영향 범위 파악** — 수정 시 어느 레이어까지 영향을 주는지 안내
+
+> 분석 결과는 항상 퍼블리셔가 이해하기 쉬운 용어로 설명합니다.
+> 백엔드 개념이 나오면 퍼블리셔 작업과 연결해서 설명합니다.
