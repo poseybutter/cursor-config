@@ -4,6 +4,14 @@
 # 주의: 관리자 권한 없이도 실행 가능 (Junction 방식)
 # =====================================================
 
+# 한글 출력 깨짐 방지 (PowerShell UTF-8 인코딩)
+try { chcp 65001 | Out-Null } catch { }
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+  $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
+}
+
 $ErrorActionPreference = "Stop"
 
 $repoDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
